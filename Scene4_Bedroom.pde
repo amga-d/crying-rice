@@ -50,6 +50,11 @@ class Scene4_Bedroom {
   int captionStartFrame;
   int captionDuration;
   
+  // Sound effect timing for conversation endings
+  int lastSpeakingEndFrame;
+  boolean waitingForSoundEffect;
+  String pendingSoundEffect;
+  
   Scene4_Bedroom() {
     // Constructor - initialize basic properties
     furniture = new ArrayList<PVector>();
@@ -60,6 +65,11 @@ class Scene4_Bedroom {
   void init() {
     // Initialize scene
     println("Initializing Scene 4: Awakening - Bedroom");
+    
+    // Start horror background music for nightmare and awakening sequence
+    if (audioManager != null) {
+      audioManager.startHorrorMusic(4);
+    }
     
     // Create Joko character - starting in deep sleep/nightmare
     joko = new Joko(width * 0.7 - 30, height - 150);
@@ -102,6 +112,11 @@ class Scene4_Bedroom {
     currentCaption = "";
     captionStartFrame = 0;
     captionDuration = 0;
+    
+    // Initialize sound effect timing
+    lastSpeakingEndFrame = 0;
+    waitingForSoundEffect = false;
+    pendingSoundEffect = "";
   }
   
   void setupBedroom() {
@@ -139,6 +154,7 @@ class Scene4_Bedroom {
           scenePhase = 1;
           phaseStartFrame = sceneFrame;
           setCaption("Joko mulai terbangun dari mimpi buruk...", 120);
+          scheduleConversationEndSound("alien-talking", sceneFrame + 120);
         }
         break;
         
@@ -148,6 +164,7 @@ class Scene4_Bedroom {
           phaseStartFrame = sceneFrame;
           momEntered = true;
           setCaption("Ibu masuk melihat anaknya menangis...", 120);
+          scheduleConversationEndSound("alien-talking", sceneFrame + 120);
         }
         break;
         
@@ -157,6 +174,7 @@ class Scene4_Bedroom {
           phaseStartFrame = sceneFrame;
           conversationStarted = true;
           setCaption("\"Nak, kamu kenapa?\" tanya Ibu dengan lembut...", 150);
+          scheduleConversationEndSound("alien-talking", sceneFrame + 150);
         }
         break;
         
@@ -166,6 +184,7 @@ class Scene4_Bedroom {
           phaseStartFrame = sceneFrame;
           emotionalMoment = true;
           setCaption("\"Maaf Bu... Joko sekarang mengerti...\"", 150);
+          scheduleConversationEndSound("alien-talking", sceneFrame + 150);
         }
         break;
         
@@ -174,7 +193,14 @@ class Scene4_Bedroom {
           scenePhase = 5;
           phaseStartFrame = sceneFrame;
           peacefulEnding = true;
+          
+          // Fade out horror music as scene becomes peaceful
+          if (audioManager != null) {
+            audioManager.fadeOutHorrorMusic();
+          }
+          
           setCaption("Pelukan hangat saat fajar menyingsing...", 180);
+          scheduleConversationEndSound("alien-talking", sceneFrame + 180);
         }
         break;
         
@@ -197,6 +223,9 @@ class Scene4_Bedroom {
     updateSleepAnimation();
     updateNightmareEffects(phaseFrame);
     
+    // Check for scheduled conversation sound effects
+    checkConversationSoundEffects(sceneFrame);
+    
     // Update caption timing
     updateCaption();
   }
@@ -215,6 +244,12 @@ class Scene4_Bedroom {
         
         // Intensify nightmare towards the end
         nightmareIntensity = map(phaseFrame, 0, 450, 0.6, 1.0);
+        
+        // Dynamically adjust horror music volume based on nightmare intensity
+        if (audioManager != null) {
+          float horrorVolume = map(nightmareIntensity, 0.6, 1.0, 0.15, 0.35);
+          audioManager.setHorrorMusicVolume(horrorVolume);
+        }
         break;
         
       case 1: // Emotional awakening
@@ -223,10 +258,21 @@ class Scene4_Bedroom {
           joko.setAnimation("waking_startled");
           inNightmare = false;
           nightmareIntensity = max(0, nightmareIntensity - 0.05);
+          
+          // Reduce horror music volume as nightmare ends
+          if (audioManager != null) {
+            float horrorVolume = map(phaseFrame, 0, 60, 0.35, 0.15);
+            audioManager.setHorrorMusicVolume(horrorVolume);
+          }
         } else if (phaseFrame < 180) {
           joko.setAnimation("sitting_tears");
           hasAwakened = true;
           isAsleep = false;
+          
+          // Keep horror music low but present during emotional awakening
+          if (audioManager != null && phaseFrame == 60) {
+            audioManager.setHorrorMusicVolume(0.1);
+          }
         } else {
           joko.setAnimation("reflecting");
         }
@@ -588,6 +634,26 @@ class Scene4_Bedroom {
     captionDuration = duration;
   }
   
+  // Function to schedule sound effect after speaking ends
+  void scheduleConversationEndSound(String soundName, int currentFrame) {
+    lastSpeakingEndFrame = currentFrame;
+    waitingForSoundEffect = true;
+    pendingSoundEffect = soundName;
+    println("Scene4 - Scheduled sound effect: " + soundName + " to play 1 second after frame " + currentFrame);
+  }
+  
+  // Function to check and play scheduled sound effects
+  void checkConversationSoundEffects(int currentFrame) {
+    if (waitingForSoundEffect && (currentFrame - lastSpeakingEndFrame) >= 30) { // 30 frames = 1 second at 30fps
+      if (audioManager != null) {
+        audioManager.playSound(pendingSoundEffect);
+        println("Scene4 - Playing conversation end sound: " + pendingSoundEffect);
+      }
+      waitingForSoundEffect = false;
+      pendingSoundEffect = "";
+    }
+  }
+  
   void updateCaption() {
     if (frameCount - captionStartFrame > captionDuration) {
       currentCaption = "";
@@ -616,9 +682,9 @@ class Scene4_Bedroom {
       boolean isMother = currentCaption.toLowerCase().contains("ibu") || currentCaption.toLowerCase().contains("mother") || currentCaption.contains("\"Nak");
       boolean isNarration = !isJoko && !isMother;
       
-      // Enhanced typography
-      textSize(17);
-      PFont captionFont = createFont("Arial", 17);
+      // Enhanced typography with larger text
+      textSize(20); // Increased from 17 to 20 for better visibility
+      PFont captionFont = createFont("Arial", 20);
       textFont(captionFont);
       
       // Smart text wrapping
@@ -648,12 +714,12 @@ class Scene4_Bedroom {
         lines.add(currentCaption);
       }
       
-      // Calculate positioning
-      float lineHeight = 24;
+      // Calculate positioning with better visibility
+      float lineHeight = 28; // Increased from 24 to 28 for larger text
       float bgWidth = maxWidth + 40;
       float bgHeight = (lines.size() * lineHeight) + 20;
       float bgX = width/2;
-      float bgY = height - 40 - (bgHeight/2);
+      float bgY = height - 80 - (bgHeight/2); // Moved higher from height - 40 for better visibility
       
       // Character-specific colors with emotional context
       color speakerColor = color(180, 220, 255); // Default soft blue

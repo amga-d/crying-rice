@@ -25,6 +25,11 @@ class Scene1_Field {
   int captionStartFrame;
   int captionDuration;
   
+  // Sound effect timing for conversation endings
+  int lastSpeakingEndFrame;
+  boolean waitingForSoundEffect;
+  String pendingSoundEffect;
+  
   Scene1_Field() {
     // Constructor - initialize basic properties
   }
@@ -53,6 +58,11 @@ class Scene1_Field {
     currentCaption = "";
     captionStartFrame = 0;
     captionDuration = 0;
+    
+    // Initialize sound effect timing
+    lastSpeakingEndFrame = 0;
+    waitingForSoundEffect = false;
+    pendingSoundEffect = "";
   }
   
   void setupEnvironment() {
@@ -204,6 +214,9 @@ class Scene1_Field {
     joko.update();
     friend.update();
     
+    // Check for scheduled conversation sound effects
+    checkConversationSoundEffects(sceneFrame);
+    
     // Update clouds (slow movement)
     for (Cloud cloud : clouds) {
       cloud.update();
@@ -218,41 +231,49 @@ class Scene1_Field {
     if (sceneFrame == 90) { // 3 seconds - Friend greets (after opening narration)
       friend.startSpeaking(1.8);
       setCaption("Friend: \"Halo Joko! Ayo ke sini!\" (Hello Joko! Come here!)", 54, sceneFrame);
+      scheduleConversationEndSound("alien-talking", sceneFrame + 54);
     }
     
     if (sceneFrame == 180) { // 6 seconds - Joko responds
       joko.startSpeaking(1.5);
       setCaption("Joko: \"Halo teman!\" (Hello friend!)", 45, sceneFrame);
+      scheduleConversationEndSound("alien-talking", sceneFrame + 45);
     }
     
     if (sceneFrame == 270) { // 9 seconds - Friend suggests eating
       friend.startSpeaking(2.2);
       setCaption("Friend: \"Mari duduk dan makan bersama!\" (Let's sit and eat together!)", 66, sceneFrame);
+      scheduleConversationEndSound("alien-talking", sceneFrame + 66);
     }
     
     if (sceneFrame == 360) { // 12 seconds - Joko admires scenery
       joko.startSpeaking(2.5);
       setCaption("Joko: \"Lihat sawah yang indah ini!\" (Look at this beautiful rice field!)", 75, sceneFrame);
+      scheduleConversationEndSound("alien-talking", sceneFrame + 75);
     }
     
     if (sceneFrame == 450) { // 15 seconds - Friend enjoys food
       friend.startSpeaking(1.8);
       setCaption("Friend: \"Makanannya enak sekali!\" (The food is so delicious!)", 54, sceneFrame);
+      scheduleConversationEndSound("alien-talking", sceneFrame + 54);
     }
     
     if (sceneFrame == 540) { // 18 seconds - Joko excited
       joko.startSpeaking(2.0);
       setCaption("Joko: \"Enak sekali! Ayo makan dan bermain!\" (So delicious! Let's eat and play!)", 60, sceneFrame);
+      scheduleConversationEndSound("alien-talking", sceneFrame + 60);
     }
     
     if (sceneFrame == 690) { // 23 seconds - After narration transition
       friend.startSpeaking(1.5);
       setCaption("Friend: \"Sampai jumpa Joko!\" (See you later Joko!)", 45, sceneFrame);
+      scheduleConversationEndSound("alien-talking", sceneFrame + 45);
     }
     
     if (sceneFrame == 750) { // 25 seconds - Joko's goodbye
       joko.startSpeaking(1.2);
       setCaption("Joko: \"Dadah! Aku pulang dulu!\" (Bye! I'm going home!)", 36, sceneFrame);
+      scheduleConversationEndSound("alien-talking", sceneFrame + 36);
     }
   }
   
@@ -277,6 +298,26 @@ class Scene1_Field {
     currentCaption = text;
     captionDuration = duration;
     captionStartFrame = currentFrame;
+  }
+  
+  // Function to schedule sound effect after speaking ends
+  void scheduleConversationEndSound(String soundName, int currentFrame) {
+    lastSpeakingEndFrame = currentFrame;
+    waitingForSoundEffect = true;
+    pendingSoundEffect = soundName;
+    println("Scene1 - Scheduled sound effect: " + soundName + " to play 1 second after frame " + currentFrame);
+  }
+  
+  // Function to check and play scheduled sound effects
+  void checkConversationSoundEffects(int currentFrame) {
+    if (waitingForSoundEffect && (currentFrame - lastSpeakingEndFrame) >= 30) { // 30 frames = 1 second at 30fps
+      if (audioManager != null) {
+        audioManager.playSound(pendingSoundEffect);
+        println("Scene1 - Playing conversation end sound: " + pendingSoundEffect);
+      }
+      waitingForSoundEffect = false;
+      pendingSoundEffect = "";
+    }
   }
   
   void updateArrival(int phaseFrame) {
@@ -347,10 +388,12 @@ class Scene1_Field {
     // Add periodic dialogue during eating
     if (subPhaseFrame == 60) {
       setCaption("Joko: \"Nasi ini sangat enak!\" (This rice is very delicious!)", 120, subPhaseFrame + phaseStartFrame + 180);
+      scheduleConversationEndSound("alien-talking", subPhaseFrame + phaseStartFrame + 180 + 120);
     }
     
     if (subPhaseFrame == 150) {
       setCaption("Friend: \"Iya! Ayam rendangnya juga lezat!\" (Yes! The rendang chicken is also tasty!)", 120, subPhaseFrame + phaseStartFrame + 180);
+      scheduleConversationEndSound("alien-talking", subPhaseFrame + phaseStartFrame + 180 + 120);
     }
   }
   
@@ -375,14 +418,17 @@ class Scene1_Field {
     // Sharing dialogue
     if (subPhaseFrame == 30) {
       setCaption("Friend: \"Coba sayur lodehnya, Joko!\" (Try the vegetables, Joko!)", 120, subPhaseFrame + phaseStartFrame + 360);
+      scheduleConversationEndSound("alien-talking", subPhaseFrame + phaseStartFrame + 360 + 120);
     }
     
     if (subPhaseFrame == 90) {
       setCaption("Joko: \"Terima kasih! Ini sambal pedas?\" (Thank you! Is this spicy chili?)", 120, subPhaseFrame + phaseStartFrame + 360);
+      scheduleConversationEndSound("alien-talking", subPhaseFrame + phaseStartFrame + 360 + 120);
     }
     
     if (subPhaseFrame == 150) {
       setCaption("Friend: \"Sedikit saja! Buatan ibu saya.\" (Just a little! Made by my mother.)", 120, subPhaseFrame + phaseStartFrame + 360);
+      scheduleConversationEndSound("alien-talking", subPhaseFrame + phaseStartFrame + 360 + 120);
     }
   }
   
@@ -395,6 +441,7 @@ class Scene1_Field {
       
       if (subPhaseFrame == 30) {
         setCaption("Joko: \"Kenyang sekali!\" (I'm so full!)", 90, subPhaseFrame + phaseStartFrame + 540);
+        scheduleConversationEndSound("alien-talking", subPhaseFrame + phaseStartFrame + 540 + 90);
       }
     } else if (subPhaseFrame < 120) {
       // Cleaning up
@@ -979,9 +1026,9 @@ class Scene1_Field {
         boolean isFriend = currentCaption.toLowerCase().contains("friend:");
         boolean isMother = currentCaption.toLowerCase().contains("mother:") || currentCaption.toLowerCase().contains("mom:");
         
-        // Enhanced typography for captions
-        textSize(17);
-        PFont captionFont = createFont("Arial", 17);
+        // Enhanced typography for captions with larger text
+        textSize(20); // Increased from 17 to 20 for better visibility
+        PFont captionFont = createFont("Arial", 20);
         textFont(captionFont);
         
         // Smart text wrapping for captions
@@ -1011,12 +1058,12 @@ class Scene1_Field {
           lines.add(currentCaption);
         }
         
-        // Calculate caption positioning and dimensions
-        float lineHeight = 24;
+        // Calculate caption positioning and dimensions with better visibility
+        float lineHeight = 28; // Increased from 24 to 28 for larger text
         float bgWidth = maxWidth + 40;
         float bgHeight = (lines.size() * lineHeight) + 20;
         float bgX = width/2;
-        float bgY = height - 40 - (bgHeight/2);
+        float bgY = height - 80 - (bgHeight/2); // Moved higher from height - 40 for better visibility
         
         // Character-specific styling
         color speakerColor = color(180, 220, 255); // Default blue

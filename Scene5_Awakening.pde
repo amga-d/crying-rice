@@ -85,6 +85,11 @@ class Scene5_Awakening {
     sceneStartFrame = frameCount;
     sceneFrame = 0;
     
+    // Start happy ending background music for the awakening scene
+    if (audioManager != null) {
+      audioManager.fadeInHappyEndingMusic(5);
+    }
+    
     // Reset animation states
     jokoIsAwake = false;
     momHasEntered = false;
@@ -143,6 +148,17 @@ class Scene5_Awakening {
       if (sceneFrame > 240 && !jokoIsAwake) {
         joko.setAnimation("waking_up");
         jokoIsAwake = true;
+        
+        // Gentle music volume increase as Joko wakes peacefully
+        if (audioManager != null) {
+          audioManager.setHappyEndingMusicVolume(0.25);
+        }
+      }
+      
+      // Gradually increase volume during awakening
+      if (audioManager != null && awakeningProgress > 0) {
+        float volume = map(awakeningProgress, 0, 1, 0.15, 0.35);
+        audioManager.setHappyEndingMusicVolume(volume);
       }
     }
     
@@ -152,6 +168,11 @@ class Scene5_Awakening {
         mom.moveTo(300, 480, 2.0);
         mom.setAnimation("approaching");
         momHasEntered = true;
+        
+        // Increase music volume as emotional connection begins
+        if (audioManager != null) {
+          audioManager.setHappyEndingMusicVolume(0.4);
+        }
       }
     }
     
@@ -161,6 +182,11 @@ class Scene5_Awakening {
         joko.setAnimation("sitting_up");
         mom.setAnimation("caring");
         conversationStarted = true;
+        
+        // Peak emotional volume during heart-to-heart conversation
+        if (audioManager != null) {
+          audioManager.setHappyEndingMusicVolume(0.45);
+        }
       }
       
       // Emotional growth during conversation
@@ -174,6 +200,11 @@ class Scene5_Awakening {
         mom.setAnimation("forgiving");
         reconciliationComplete = true;
         
+        // Maximum uplifting volume during reconciliation
+        if (audioManager != null) {
+          audioManager.setHappyEndingMusicVolume(0.5);
+        }
+        
         // Start peace particles - optimized
         for (int i = 0; i < 3; i++) { // Reduced from 5 to 3
           peaceParticles.add(new PeaceParticle(random(width), random(height)));
@@ -186,6 +217,11 @@ class Scene5_Awakening {
       joko.setAnimation("peaceful");
       mom.setAnimation("gentle_smile");
       hopeShimmer = sin(sceneFrame * 0.1) * 0.5 + 0.5;
+      
+      // Maintain uplifting volume for peaceful conclusion
+      if (audioManager != null && sceneFrame % 60 == 0) { // Check every 2 seconds
+        audioManager.setHappyEndingMusicVolume(0.45);
+      }
     }
   }
   

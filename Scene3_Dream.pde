@@ -41,6 +41,11 @@ class Scene3_Dream {
   void init() {
     println("Initializing Scene 3: Dream");
     
+    // Start horror background music for dream sequence
+    if (audioManager != null) {
+      audioManager.startHorrorMusic(3);
+    }
+    
     // Create characters
     joko = new Joko(width/2 - 100, height - 150);
     joko.setAnimation("sleeping");

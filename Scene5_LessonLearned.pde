@@ -28,6 +28,11 @@ class Scene5_LessonLearned {
   void init() {
     println("Initializing Scene 5: The Lesson Learned");
     
+    // Start happy ending background music for the lesson learned scene
+    if (audioManager != null) {
+      audioManager.startHappyEndingMusic(5);
+    }
+    
     // Initialize lesson content
     setupLessonContent();
     
@@ -157,11 +162,22 @@ class Scene5_LessonLearned {
   void updateFadeIn(int phaseFrame) {
     titleAlpha = map(phaseFrame, 0, 90, 0, 255);
     titleAlpha = constrain(titleAlpha, 0, 255);
+    
+    // Gradually increase music volume during fade in
+    if (audioManager != null) {
+      float volume = map(phaseFrame, 0, 90, 0.1, 0.3);
+      audioManager.setHappyEndingMusicVolume(volume);
+    }
   }
   
   void updateTitleReveal(int phaseFrame) {
     titleAlpha = 255;
     // Add gentle title animation
+    
+    // Set music to moderate volume for title reveal
+    if (audioManager != null && phaseFrame == 0) {
+      audioManager.setHappyEndingMusicVolume(0.35);
+    }
   }
   
   void updateLessonText(int phaseFrame) {
@@ -171,6 +187,11 @@ class Scene5_LessonLearned {
     // Progressive text reveal
     int lineRevealInterval = 30; // Reveal new line every second
     currentLineIndex = min(phaseFrame / lineRevealInterval, lessonLines.length - 1);
+    
+    // Increase music volume as lesson text appears
+    if (audioManager != null && phaseFrame == 0) {
+      audioManager.setHappyEndingMusicVolume(0.4);
+    }
   }
   
   void updateRiceAnimation(int phaseFrame) {
@@ -178,12 +199,22 @@ class Scene5_LessonLearned {
     for (FloatingRiceGrain grain : floatingRice) {
       grain.setSpecialAnimation(true);
     }
+    
+    // Increase music volume for the inspiring rice animation
+    if (audioManager != null && phaseFrame == 0) {
+      audioManager.setHappyEndingMusicVolume(0.45);
+    }
   }
   
   void updateFinalMessage(int phaseFrame) {
     // Keep everything visible and add final touches
     titleAlpha = 255;
     textAlpha = 255;
+    
+    // Peak music volume for the final uplifting message
+    if (audioManager != null && phaseFrame == 0) {
+      audioManager.setHappyEndingMusicVolume(0.5);
+    }
   }
   
   void draw() {

@@ -13,7 +13,11 @@ class AudioManager {
   
   // Background music
   SoundFile backgroundMusic;
+  SoundFile horrorMusic;
+  SoundFile happyEndingMusic;
   boolean musicLoaded;
+  boolean horrorMusicLoaded;
+  boolean happyEndingMusicLoaded;
   boolean musicPlaying;
   int currentMusicScene;
   
@@ -29,6 +33,8 @@ class AudioManager {
     
     // Initialize music variables
     musicLoaded = false;
+    horrorMusicLoaded = false;
+    happyEndingMusicLoaded = false;
     musicPlaying = false;
     currentMusicScene = 0;
     
@@ -62,6 +68,26 @@ class AudioManager {
       musicLoaded = false;
     }
     
+    // Load horror background music
+    try {
+      horrorMusic = new SoundFile(sketch, "assets/sounds/Backsound Horor, Musik Horor - no copyright.mp3");
+      horrorMusicLoaded = true;
+      println("Horror background music initialized successfully!");
+    } catch (Exception e) {
+      println("Failed to initialize horror background music: " + e.getMessage());
+      horrorMusicLoaded = false;
+    }
+    
+    // Load happy ending background music
+    try {
+      happyEndingMusic = new SoundFile(sketch, "assets/sounds/Hopeful Happy Ending Music - Dawn of Life.mp3");
+      happyEndingMusicLoaded = true;
+      println("Happy ending background music initialized successfully!");
+    } catch (Exception e) {
+      println("Failed to initialize happy ending background music: " + e.getMessage());
+      happyEndingMusicLoaded = false;
+    }
+    
     // Load speaking sound effect
     try {
       speakingSound = new SoundFile(sketch, "assets/sounds/alien-talking-312011.mp3");
@@ -82,14 +108,14 @@ class AudioManager {
       currentNarration = text;
       narrationStartFrame = frameCount;
       
-      // Dynamic duration based on text length (more natural)
+      // Dynamic duration based on text length (more natural and shorter for Scene 2)
       int textLength = text.length();
       if (textLength < 30) {
-        narrationDuration = 90; // 3 seconds for short text
+        narrationDuration = 75; // 2.5 seconds for short text
       } else if (textLength < 60) {
-        narrationDuration = 120; // 4 seconds for medium text
+        narrationDuration = 90; // 3 seconds for medium text  
       } else {
-        narrationDuration = 150; // 5 seconds for long text
+        narrationDuration = 120; // 4 seconds for long text
       }
       
       // Trigger speaking animation for characters based on content
@@ -153,6 +179,138 @@ class AudioManager {
       currentMusicScene = 0;
       println("Background music stopped");
     }
+    // Also stop horror music if it's playing
+    if (horrorMusicLoaded && horrorMusic != null) {
+      horrorMusic.stop();
+      println("Horror music stopped");
+    }
+    // Also stop happy ending music if it's playing
+    if (happyEndingMusicLoaded && happyEndingMusic != null) {
+      happyEndingMusic.stop();
+      println("Happy ending music stopped");
+    }
+  }
+
+  // Horror background music control methods
+  void startHorrorMusic(int sceneNumber) {
+    if (horrorMusicLoaded && horrorMusic != null) {
+      // Start horror music for Scene 3 and Scene 4
+      if (sceneNumber == 3 || sceneNumber == 4) {
+        // Stop any regular background music first
+        if (musicLoaded && backgroundMusic != null && musicPlaying) {
+          backgroundMusic.stop();
+          musicPlaying = false;
+        }
+        
+        if (!horrorMusic.isPlaying() || currentMusicScene != sceneNumber) {
+          if (horrorMusic.isPlaying()) {
+            horrorMusic.stop();
+          }
+          
+          horrorMusic.loop();
+          horrorMusic.amp(0.2); // Set volume to 20% - horror music should be subtle
+          currentMusicScene = sceneNumber;
+          println("Horror background music started for Scene " + sceneNumber);
+        }
+      }
+    }
+  }
+  
+  void stopHorrorMusic() {
+    if (horrorMusicLoaded && horrorMusic != null) {
+      horrorMusic.stop();
+      currentMusicScene = 0;
+      println("Horror music stopped");
+    }
+  }
+  
+  void fadeOutHorrorMusic() {
+    if (horrorMusicLoaded && horrorMusic != null && horrorMusic.isPlaying()) {
+      // Simple fade out by reducing volume gradually
+      float currentVolume = 0.2;
+      for (int i = 0; i < 30; i++) {
+        currentVolume *= 0.9;
+        horrorMusic.amp(currentVolume);
+      }
+      horrorMusic.stop();
+      currentMusicScene = 0;
+      println("Horror music faded out");
+    }
+  }
+  
+  // Adjust horror music volume (useful for different phases)
+  void setHorrorMusicVolume(float volume) {
+    if (horrorMusicLoaded && horrorMusic != null && horrorMusic.isPlaying()) {
+      horrorMusic.amp(constrain(volume, 0.0, 1.0));
+      println("Horror music volume set to: " + volume);
+    }
+  }
+
+  // Happy ending music control methods
+  void startHappyEndingMusic(int sceneNumber) {
+    if (happyEndingMusicLoaded && happyEndingMusic != null) {
+      // Start happy ending music for Scene 5
+      if (sceneNumber == 5) {
+        // Stop any other background music first
+        if (musicLoaded && backgroundMusic != null && musicPlaying) {
+          backgroundMusic.stop();
+          musicPlaying = false;
+        }
+        if (horrorMusicLoaded && horrorMusic != null && horrorMusic.isPlaying()) {
+          horrorMusic.stop();
+        }
+        
+        if (!happyEndingMusic.isPlaying() || currentMusicScene != sceneNumber) {
+          if (happyEndingMusic.isPlaying()) {
+            happyEndingMusic.stop();
+          }
+          
+          happyEndingMusic.loop();
+          happyEndingMusic.amp(0.4); // Set volume to 40% - uplifting and prominent
+          currentMusicScene = sceneNumber;
+          println("Happy ending background music started for Scene " + sceneNumber);
+        }
+      }
+    }
+  }
+  
+  void stopHappyEndingMusic() {
+    if (happyEndingMusicLoaded && happyEndingMusic != null) {
+      happyEndingMusic.stop();
+      currentMusicScene = 0;
+      println("Happy ending music stopped");
+    }
+  }
+  
+  void fadeInHappyEndingMusic(int sceneNumber) {
+    if (happyEndingMusicLoaded && happyEndingMusic != null) {
+      if (sceneNumber == 5) {
+        // Stop other music first
+        if (horrorMusicLoaded && horrorMusic != null && horrorMusic.isPlaying()) {
+          fadeOutHorrorMusic();
+        }
+        
+        if (!happyEndingMusic.isPlaying()) {
+          happyEndingMusic.loop();
+          happyEndingMusic.amp(0.0); // Start at zero volume
+          currentMusicScene = sceneNumber;
+          
+          // Gradual fade in over time
+          for (int i = 0; i < 60; i++) {
+            float volume = map(i, 0, 60, 0.0, 0.4);
+            happyEndingMusic.amp(volume);
+          }
+          println("Happy ending music faded in for Scene " + sceneNumber);
+        }
+      }
+    }
+  }
+  
+  void setHappyEndingMusicVolume(float volume) {
+    if (happyEndingMusicLoaded && happyEndingMusic != null && happyEndingMusic.isPlaying()) {
+      happyEndingMusic.amp(constrain(volume, 0.0, 1.0));
+      println("Happy ending music volume set to: " + volume);
+    }
   }
   
   void fadeOutMusic() {
@@ -172,6 +330,11 @@ class AudioManager {
   
   boolean isMusicPlaying() {
     return musicPlaying;
+  }
+  
+  // Helper method to check if narration is currently active
+  boolean isNarrationActive() {
+    return getCurrentNarration().length() > 0;
   }
   
   // Methods to access current narration for screen display
@@ -330,18 +493,18 @@ class AudioManager {
       startBackgroundMusic(2);
     }
     
-    // Opening scene setting
+    // Opening scene setting - REDUCED duration to avoid dialog conflict
     if (sceneFrame == 15) { // 0.5 seconds in
       playNarration("At home, Mother has prepared rice and vegetables with love.", sceneFrame);
     }
     
-    // Transition to conflict
-    if (sceneFrame == 360) { // 12 seconds in
+    // Transition to conflict - moved to after dialog space
+    if (sceneFrame == 480) { // 16 seconds in (after early dialogues)
       playNarration("But Joko seems uninterested in the meal.", sceneFrame);
     }
     
-    // Waste moment
-    if (sceneFrame == 720) { // 24 seconds in
+    // Waste moment - moved later to avoid dialog conflict
+    if (sceneFrame == 840) { // 28 seconds in (near end of scene)
       playNarration("Without thinking, Joko throws the rice away.", sceneFrame);
     }
     
@@ -350,11 +513,11 @@ class AudioManager {
       playSound("plate_being_served");
     }
     
-    if (sceneFrame == 720) { // 24 seconds
+    if (sceneFrame == 840) { // 28 seconds
       playSound("food_thrown_in_trash");
     }
     
-    if (sceneFrame == 840) { // 28 seconds
+    if (sceneFrame == 870) { // 29 seconds
       playSound("mother_disappointed_sigh");
     }
   }

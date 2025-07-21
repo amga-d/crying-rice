@@ -31,6 +31,11 @@ class Scene2_Kitchen {
 
   // Dialogue state
   int dialogueStep;
+  
+  // Sound effect timing for conversation endings
+  int lastSpeakingEndFrame;
+  boolean waitingForSoundEffect;
+  String pendingSoundEffect;
 
   Scene2_Kitchen() {
     // Constructor
@@ -61,6 +66,11 @@ class Scene2_Kitchen {
     dialogueStep = 0;
     showFood = true; // Food is already on table when scene starts
     currentCaption = "";
+    
+    // Initialize sound effect timing
+    lastSpeakingEndFrame = 0;
+    waitingForSoundEffect = false;
+    pendingSoundEffect = "";
   }
 
   void setupKitchen() {
@@ -94,7 +104,7 @@ class Scene2_Kitchen {
       startPhase(2, sceneFrame);
     } else if (scenePhase == 2 && dialogueStep > 6) { // Dialogue finished
        startPhase(3, sceneFrame);
-    } else if (scenePhase == 3 && phaseFrame > 420) { // 7s
+    } else if (scenePhase == 3 && phaseFrame > 300) { // Increased from 420 to give more dialogue time
        startPhase(4, sceneFrame);
     }
 
@@ -112,6 +122,9 @@ class Scene2_Kitchen {
     mom.update();
     wallClock.update();
     windowLightAngle += 0.002;
+    
+    // Check for scheduled conversation sound effects
+    checkConversationSoundEffects(sceneFrame);
 
     // Update wasted food particles
     for (int i = wastedFood.size() - 1; i >= 0; i--) {
@@ -133,6 +146,29 @@ class Scene2_Kitchen {
     currentCaption = text;
     captionDuration = durationFrames;
     captionStartFrame = currentFrame;
+    
+    // Debug logging to help track caption timing
+    println("Scene2 Caption Set: \"" + text + "\" at frame " + currentFrame + " for " + durationFrames + " frames");
+  }
+  
+  // Function to schedule sound effect after speaking ends
+  void scheduleConversationEndSound(String soundName, int currentFrame) {
+    lastSpeakingEndFrame = currentFrame;
+    waitingForSoundEffect = true;
+    pendingSoundEffect = soundName;
+    println("Scheduled sound effect: " + soundName + " to play 1 second after frame " + currentFrame);
+  }
+  
+  // Function to check and play scheduled sound effects
+  void checkConversationSoundEffects(int currentFrame) {
+    if (waitingForSoundEffect && (currentFrame - lastSpeakingEndFrame) >= 30) { // 30 frames = 1 second at 30fps
+      if (audioManager != null) {
+        audioManager.playSound(pendingSoundEffect);
+        println("Playing conversation end sound: " + pendingSoundEffect);
+      }
+      waitingForSoundEffect = false;
+      pendingSoundEffect = "";
+    }
   }
 
   // --- Phase Logic ---
@@ -175,18 +211,22 @@ class Scene2_Kitchen {
     
     mom.setAnimation("concerned");
 
-    if (dialogueStep == 0 && phaseFrame > 60) { // Start after opening narration
+    if (dialogueStep == 0 && phaseFrame > 120) { // Start well after opening narration (4 seconds)
       mom.startSpeaking(3.0);
-      setCaption("Ibu: \"Ayo makan, Nak. Ibu masak sayur bening, tempenya masih hangat.\"", 90, sceneFrame);
+      setCaption("Ibu: \"Ayo makan, Nak. Ibu masak sayur bening, tempenya masih hangat.\"", 120, sceneFrame);
       dialogueStep = 1;
       joko.setAnimation("dismissive");
+      // Schedule sound effect after mom stops speaking
+      scheduleConversationEndSound("alien-talking", sceneFrame + 120);
     }
-    if (dialogueStep == 1 && phaseFrame > 180) {
+    if (dialogueStep == 1 && phaseFrame > 270) { // Give more space before next dialogue
       mom.startSpeaking(3.5);
-      setCaption("Ibu: \"Kalau nggak dihabisin, makanannya bisa nangis, lho…\"", 105, sceneFrame);
+      setCaption("Ibu: \"Kalau nggak dihabisin, makanannya bisa nangis, lho…\"", 135, sceneFrame);
       dialogueStep = 2;
+      // Schedule sound effect after mom stops speaking
+      scheduleConversationEndSound("alien-talking", sceneFrame + 135);
     }
-    if (dialogueStep == 2 && phaseFrame > 300) {
+    if (dialogueStep == 2 && phaseFrame > 420) { // Wait until after second narration (14 seconds)
       // Before Joko speaks, make him move to front of table
       if (joko.position.x < width/2 - 20) {
         joko.setAnimation("walking");
@@ -194,29 +234,37 @@ class Scene2_Kitchen {
       } else {
         joko.stop();
         joko.setAnimation("dismissive");
-        if (phaseFrame > 330) { // Quicker transition
+        if (phaseFrame > 450) { // Quicker transition
           joko.startSpeaking(3.0);
-          setCaption("Joko: \"Nggak lapar. Lagian, makanan nggak bisa nangis.\"", 90, sceneFrame);
+          setCaption("Joko: \"Nggak lapar. Lagian, makanan nggak bisa nangis.\"", 120, sceneFrame);
           dialogueStep = 3;
+          // Schedule sound effect after Joko stops speaking
+          scheduleConversationEndSound("alien-talking", sceneFrame + 120);
         }
       }
     }
-     if (dialogueStep == 3 && phaseFrame > 450) { // Before second narration
+     if (dialogueStep == 3 && phaseFrame > 600) { // Give more time between dialogues
       mom.startSpeaking(5.5);
-      setCaption("Ibu: \"Bukan karena punya mata, tapi karena ada yang capek nanem, masak, nyiapin.\"", 165, sceneFrame);
+      setCaption("Ibu: \"Bukan karena punya mata, tapi karena ada yang capek nanem, masak, nyiapin.\"", 195, sceneFrame);
       dialogueStep = 4;
+      // Schedule sound effect after mom stops speaking
+      scheduleConversationEndSound("alien-talking", sceneFrame + 195);
     }
-    if (dialogueStep == 4 && phaseFrame > 630) {
+    if (dialogueStep == 4 && phaseFrame > 810) { // Wait for previous dialogue to finish
        mom.startSpeaking(2.5);
-       setCaption("Ibu: \"Dibuang gitu aja... mereka sedih.\"", 75, sceneFrame);
+       setCaption("Ibu: \"Dibuang gitu aja... mereka sedih.\"", 105, sceneFrame);
        dialogueStep = 5;
+       // Schedule sound effect after mom stops speaking
+       scheduleConversationEndSound("alien-talking", sceneFrame + 105);
     }
-    if (dialogueStep == 5 && phaseFrame > 750) { // After waste narration
+    if (dialogueStep == 5 && phaseFrame > 930) { // Well after third narration (31 seconds)
       joko.startSpeaking(2.0);
-      setCaption("Joko: \"Yaudah, nanti dimakan...\"", 60, sceneFrame);
+      setCaption("Joko: \"Yaudah, nanti dimakan...\"", 90, sceneFrame);
       dialogueStep = 6;
+      // Schedule sound effect after Joko stops speaking
+      scheduleConversationEndSound("alien-talking", sceneFrame + 90);
     }
-     if (dialogueStep == 6 && phaseFrame > 810) {
+     if (dialogueStep == 6 && phaseFrame > 1050) {
       dialogueStep = 7; // End of dialogue
     }
   }
@@ -229,10 +277,14 @@ class Scene2_Kitchen {
     if (phaseFrame == 30) {
         mom.startSpeaking(4.0);
         setCaption("Ibu: \"Ibu nggak maksa... Tapi kalau tiap hari kayak gini, Ibu juga capek, Nak.\"", 120, sceneFrame);
+        // Schedule sound effect after mom stops speaking
+        scheduleConversationEndSound("alien-talking", sceneFrame + 120);
     }
     if (phaseFrame == 180) {
         mom.startSpeaking(2.5);
         setCaption("Ibu: \"Besok masak setengah aja... biar nggak kebuang lagi.\"", 75, sceneFrame);
+        // Schedule sound effect after mom stops speaking
+        scheduleConversationEndSound("alien-talking", sceneFrame + 75);
     }
   }
 
@@ -268,15 +320,17 @@ class Scene2_Kitchen {
         }
       }
       // Phase 4: Look dismissive after throwing
-      else if (phaseFrame >= 300 && phaseFrame < 360) {
+      else if (phaseFrame >= 300 && phaseFrame < 450) { // Extended to allow caption to finish
         joko.setAnimation("dismissive");
         if (phaseFrame == 320) {
           joko.startSpeaking(2.0);
           setCaption("Joko: \"Tuh, nggak nangis kan.\"", 120, sceneFrame);
+          // Schedule sound effect after Joko stops speaking
+          scheduleConversationEndSound("alien-talking", sceneFrame + 120);
         }
       }
       // Phase 5: Walk back to table
-      else if (phaseFrame >= 360 && phaseFrame < 480) {
+      else if (phaseFrame >= 450 && phaseFrame < 570) { // Adjusted start time
         if (joko.position.x > width/2 - 60) {
           joko.setAnimation("walking");
           joko.moveTo(width/2 - 60, height - 200, 2.0);
@@ -285,7 +339,7 @@ class Scene2_Kitchen {
         }
       }
       // Phase 6: Put bowl back on table and sit
-      else if (phaseFrame >= 480) {
+      else if (phaseFrame >= 570) { // Adjusted start time
         joko.setAnimation("putting_down");
         joko.position.y = height - 190; // Sit back down
       }
@@ -388,27 +442,47 @@ class Scene2_Kitchen {
     if (currentCaption != null && currentCaption.length() > 0) {
       int currentFrame = frameCount - captionStartFrame;
       if (currentFrame >= 0 && currentFrame < captionDuration) {
+        // Check if AudioManager narration is active to avoid overlap
+        // Using global audioManager reference from main sketch
+        boolean narrationActive = false;
+        if (audioManager != null) {
+          narrationActive = audioManager.isNarrationActive();
+        }
+        
+        // Debug logging - always show when caption should be visible
+        println("Scene2 Caption ACTIVE: frame=" + currentFrame + "/" + captionDuration + 
+                ", narrationActive=" + narrationActive + ", text=\"" + currentCaption + "\"");
+        
+        // Dynamic positioning system for maximum visibility
+        float captionY = height - 120; // Higher base position for better visibility
+        if (narrationActive) {
+          // Move caption to top area when narration is active
+          captionY = 120; // Top area instead of bottom
+        }
+        
         pushMatrix();
         pushStyle();
         
         // Calculate fade-in/fade-out animation for captions
         float fadeAlpha = 255;
-        int fadeInFrames = 12; // 0.4 seconds fade in
-        int fadeOutFrames = 12; // 0.4 seconds fade out
+        int fadeInFrames = 8; // Faster fade in for immediate visibility
+        int fadeOutFrames = 15; // Longer fade out to ensure visibility
         
         if (currentFrame < fadeInFrames) {
-          fadeAlpha = map(currentFrame, 0, fadeInFrames, 0, 255);
+          fadeAlpha = map(currentFrame, 0, fadeInFrames, 100, 255); // Start with some opacity
         } else if (currentFrame > captionDuration - fadeOutFrames) {
-          fadeAlpha = map(currentFrame, captionDuration - fadeOutFrames, captionDuration, 255, 0);
+          fadeAlpha = map(currentFrame, captionDuration - fadeOutFrames, captionDuration, 255, 100); // End with some opacity
         }
         
         // Determine speaker for character-specific styling
         boolean isJoko = currentCaption.toLowerCase().contains("joko:");
-        boolean isMother = currentCaption.toLowerCase().contains("mother:") || currentCaption.toLowerCase().contains("mom:");
+        boolean isMother = currentCaption.toLowerCase().contains("mother:") || 
+                          currentCaption.toLowerCase().contains("mom:") || 
+                          currentCaption.toLowerCase().contains("ibu:");
         
-        // Enhanced typography
-        textSize(17);
-        PFont captionFont = createFont("Arial", 17);
+        // Enhanced typography with larger text for maximum visibility
+        textSize(24); // Increased from 20 to 24 for even better visibility
+        PFont captionFont = createFont("Arial Bold", 24); // Bold font for better readability
         textFont(captionFont);
         
         // Smart text wrapping
@@ -438,12 +512,12 @@ class Scene2_Kitchen {
           lines.add(currentCaption);
         }
         
-        // Calculate positioning
-        float lineHeight = 24;
+        // Calculate positioning with larger line height
+        float lineHeight = 28; // Increased from 24 to 28 for larger text
         float bgWidth = maxWidth + 40;
         float bgHeight = (lines.size() * lineHeight) + 20;
         float bgX = width/2;
-        float bgY = height - 40 - (bgHeight/2);
+        float bgY = captionY - (bgHeight/2);
         
         // Character-specific colors
         color speakerColor = color(180, 220, 255); // Default
@@ -457,19 +531,19 @@ class Scene2_Kitchen {
           borderColor = color(200, 100, 150);
         }
         
-        // Draw background with glow
-        for (int i = 0; i < 5; i++) {
-          float alpha = map(i, 0, 4, fadeAlpha * 0.3, 0);
+        // Draw background with enhanced glow for better visibility
+        for (int i = 0; i < 8; i++) { // Increased glow layers from 5 to 8
+          float alpha = map(i, 0, 7, fadeAlpha * 0.4, 0); // Enhanced glow intensity
           fill(red(borderColor), green(borderColor), blue(borderColor), alpha);
           noStroke();
           rectMode(CENTER);
-          rect(bgX, bgY, bgWidth + (i * 3), bgHeight + (i * 3), 10 + i);
+          rect(bgX, bgY, bgWidth + (i * 4), bgHeight + (i * 4), 12 + i); // Increased glow spread
         }
         
-        // Main background
-        fill(20, 25, 35, fadeAlpha * 0.95);
-        stroke(red(borderColor), green(borderColor), blue(borderColor), fadeAlpha * 0.8);
-        strokeWeight(1.5);
+        // Main background with stronger opacity for better visibility
+        fill(20, 25, 35, fadeAlpha * 0.98); // Increased opacity from 0.95 to 0.98
+        stroke(red(borderColor), green(borderColor), blue(borderColor), fadeAlpha * 0.9); // Increased border opacity
+        strokeWeight(2); // Increased stroke weight from 1.5 to 2
         rect(bgX, bgY, bgWidth, bgHeight, 8);
         
         // Inner accent

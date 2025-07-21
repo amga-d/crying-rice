@@ -27,6 +27,18 @@ class SceneManager {
   }
   
   void setCurrentScene(int sceneNum) {
+    // Stop appropriate music when leaving certain scenes
+    if (audioManager != null) {
+      // Stop horror music when leaving Scene 3 or 4
+      if ((currentScene == 3 || currentScene == 4) && (sceneNum != 3 && sceneNum != 4)) {
+        audioManager.stopHorrorMusic();
+      }
+      // Stop regular background music when leaving Scene 1 or 2
+      if ((currentScene == 1 || currentScene == 2) && (sceneNum != 1 && sceneNum != 2)) {
+        audioManager.stopBackgroundMusic();
+      }
+    }
+    
     currentScene = sceneNum;
     sceneStartFrame = frameCount;
     
