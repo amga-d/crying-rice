@@ -79,14 +79,6 @@ void draw() {
   // Draw narration on screen
   audioManager.drawNarration();
   
-  // Display frame info for debugging (moved to avoid narration overlap)
-  fill(255);
-  textSize(14);
-  text("Frame: " + frameCount + " | Scene: " + sceneManager.getCurrentScene() + " | FPS: " + nf(frameRate, 0, 1), 10, height - 50);
-  
-  // Display controls
-  textSize(12);
-  text("Controls: [SPACE] Pause | [R] Restart | [1] Scene 1 | [2] Scene 2 | [3] Scene 3 | [4] Scene 4 | [5] Lesson", 10, height - 20);
 }
 
 // ========================================
